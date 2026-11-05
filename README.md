@@ -41,8 +41,8 @@ database storage. Deletion permissions are also added in a later tutorial stage.
 
 ## Progress
 
-- Completed: SQLite, templates, login/logout, adding posts, CSS and JS deletion.
-- Remaining: deployment, Bootstrap, SQLAlchemy, search and custom tests,
+- Completed: SQLite, templates, login/logout, adding posts, CSS, JS deletion and Bootstrap styling.
+- Remaining: SQLAlchemy, search and custom tests,
   login-required deletion and tests, PostgreSQL, linting and formatting.
 
-Deployment URL: pending.
+Deployment URL: https://ece444-pra6-olivia.onrender.com/
