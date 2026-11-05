@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block body %}
+{% if session.get('logged_in') %}
+<form action="{{ url_for('add_entry') }}" method="post">
+  <p><label>Title: <input type="text" name="title" required></label></p>
+  <p><label>Text: <textarea name="text" rows="5" cols="40" required></textarea></label></p>
+  <button type="submit">Share</button>
+</form>
+{% endif %}
+<p id="delete-feedback" role="status" aria-live="polite"></p>
+<p class="hint">Click an article to delete it. You can also focus it and press Enter.</p>
+<ul class="entries">
+  {% for entry in entries %}
+  <li class="entry" data-delete-url="{{ url_for('delete_entry', post_id=entry.id) }}" tabindex="0" aria-label="Delete article: {{ entry.title }}">
+    <h2 id="{{ entry.id }}">{{ entry.title }}</h2>
+    {{ entry.text|safe }}
+  </li>
+  {% else %}
+  <li><em>No entries yet. Add some!</em></li>
+  {% endfor %}
+</ul>
+{% endblock %}
