@@ -1,4 +1,5 @@
 import os
+from functools import wraps
 from pathlib import Path
 
 from flask import (
@@ -86,6 +87,18 @@ def add_entry():
     return redirect(url_for("index"))
 
 
+def login_required(view):
+    """Only call the wrapped view when the client is authenticated."""
+    @wraps(view)
+    def decorated_function(*args, **kwargs):
+        if not session.get("logged_in"):
+            flash("Please log in.")
+            return jsonify(status=0, message="Please log in."), 401
+        return view(*args, **kwargs)
+    return decorated_function
+
+
+@login_required
 def delete_entry(post_id):
     """Delete a post and return JSON for the browser's fetch request."""
     try:

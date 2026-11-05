@@ -122,6 +122,30 @@ def test_delete_message(client):
     assert b"Keep me" in page
 
 
+@pytest.mark.parametrize("authentication", ["never_logged_in", "logged_out", "wrong_password"])
+def test_delete_requires_login(client, authentication):
+    """Denied deletion must preserve the actual post, not just return an error."""
+    from project.models import Post
+
+    post = Post(title="Protected article", text="Keep this content")
+    db.session.add(post)
+    db.session.commit()
+    post_id = post.id
+    if authentication == "logged_out":
+        login(client)
+        client.get("/logout")
+    elif authentication == "wrong_password":
+        login(client, password="wrong")
+
+    response = client.get(f"/delete/{post_id}")
+
+    assert response.status_code == 401
+    assert response.get_json() == {"status": 0, "message": "Please log in."}
+    db.session.expire_all()
+    assert db.session.get(Post, post_id).title == "Protected article"
+    assert b"Protected article" in client.get("/").data
+
+
 @pytest.mark.parametrize("query, expected", [
     ("fLaSk", ["Flask notes"]),
     ("pytest", ["Testing notes"]),

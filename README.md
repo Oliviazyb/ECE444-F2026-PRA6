@@ -40,15 +40,19 @@ Create a Python Web Service from this repository, using these settings:
 
 This stage uses SQLite on Render's ephemeral filesystem. Posts can be lost on
 restart, redeploy or spin-down. The later PRA6 PostgreSQL stage provides external
-database storage. Deletion permissions are also added in a later tutorial stage.
+database storage. Deleting posts requires a logged-in session.
 
 ## Progress
 
-- Completed: SQLite, templates, login/logout, adding posts, CSS, JS deletion and Bootstrap styling, initial deployment SQLAlchemy, and search with custom tests.
-- Remaining: login-required deletion and tests, PostgreSQL, linting and formatting.
+- Completed: SQLite, templates, login/logout, adding posts, CSS, JS deletion and Bootstrap styling, initial deployment, SQLAlchemy, search with custom tests, and login-required deletion.
+- Remaining: PostgreSQL, linting and formatting.
 
 Deployment URL: https://ece444-pra6-olivia.onrender.com/
 
 Search uses `/search/?query=keyword`, matches title or body without case
 sensitivity, and shows no articles for blank queries. Six parameterized search
 cases check title/body matches, exclusions, no results and empty queries.
+
+Deletion permission tests cover anonymous access, access after logout, and a
+failed password login. Each checks HTTP 401, the JSON error, and that the post
+remains stored. The existing successful deletion test covers logged-in access.
