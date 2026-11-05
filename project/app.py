@@ -14,9 +14,15 @@ from sqlalchemy.exc import SQLAlchemyError
 def create_app(test_config=None):
     application = Flask(__name__)
     database = Path(__file__).resolve().parent.parent / "flaskr.db"
+    database_url = os.getenv("DATABASE_URL") or f"sqlite:///{database}"
+    # Render URLs use the PostgreSQL scheme; select our psycopg 3 driver.
+    for prefix in ("postgres://", "postgresql://"):
+        if database_url.startswith(prefix):
+            database_url = "postgresql+psycopg://" + database_url[len(prefix):]
+            break
     application.config.update(
         DATABASE=database,
-        SQLALCHEMY_DATABASE_URI=f"sqlite:///{database}",
+        SQLALCHEMY_DATABASE_URI=database_url,
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         USERNAME=os.getenv("APP_USERNAME", "admin"),
         PASSWORD=os.getenv("APP_PASSWORD", "admin"),

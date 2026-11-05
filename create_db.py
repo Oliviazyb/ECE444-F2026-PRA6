@@ -1,4 +1,4 @@
-"""Create the SQLite table for deployment without deleting existing posts."""
+"""Create missing tables in the configured database without deleting posts."""
 
 from project.app import app, db
 
