@@ -3,17 +3,32 @@ from contextlib import closing
 
 import pytest
 
-from project.app import app, init_db
+from flask import current_app
+
+from project.app import create_app, db
 
 
 @pytest.fixture
-def client(tmp_path, monkeypatch):
-    """Give each test its own empty database and application settings."""
-    monkeypatch.setitem(app.config, "DATABASE", tmp_path / "test.db")
-    monkeypatch.setitem(app.config, "TESTING", True)
-    init_db()
-    with app.test_client() as client:
-        yield client
+def client(tmp_path):
+    """Configure the test database before SQLAlchemy initializes its engine."""
+    database = tmp_path / "test.db"
+    app = create_app({
+        "TESTING": True,
+        "DATABASE": database,
+        "SQLALCHEMY_DATABASE_URI": f"sqlite:///{database}",
+        "USERNAME": "admin",
+        "PASSWORD": "admin",
+        "SECRET_KEY": "test-only-key",
+    })
+    with app.app_context():
+        db.create_all()
+        try:
+            with app.test_client() as client:
+                yield client
+        finally:
+            db.session.remove()
+            db.drop_all()
+            db.engine.dispose()
 
 
 def login(client, username="admin", password="admin"):
@@ -30,7 +45,7 @@ def test_index(client):
 
 
 def test_database(client):
-    database = app.config["DATABASE"]
+    database = current_app.config["DATABASE"]
     assert database.is_file()
     with closing(sqlite3.connect(database)) as connection:
         columns = connection.execute("PRAGMA table_info(entries)").fetchall()
@@ -71,7 +86,7 @@ def test_messages(client):
     assert b"No entries yet. Add some!" not in response.data
     assert b"&lt;Hello&gt;" in response.data
     assert b"<strong>HTML</strong> allowed here" in response.data
-    with closing(sqlite3.connect(app.config["DATABASE"])) as connection:
+    with closing(sqlite3.connect(current_app.config["DATABASE"])) as connection:
         assert connection.execute("SELECT title, text FROM entries").fetchall() == [
             ("<Hello>", "<strong>HTML</strong> allowed here")
         ]
@@ -82,7 +97,7 @@ def test_messages(client):
 def test_add_requires_login(client):
     response = client.post("/add", data={"title": "Blocked", "text": "Blocked"})
     assert response.status_code == 401
-    with closing(sqlite3.connect(app.config["DATABASE"])) as connection:
+    with closing(sqlite3.connect(current_app.config["DATABASE"])) as connection:
         assert connection.execute("SELECT COUNT(*) FROM entries").fetchone()[0] == 0
 
 
@@ -91,7 +106,7 @@ def test_delete_message(client):
     login(client)
     for title in ("Delete me", "Keep me"):
         client.post("/add", data={"title": title, "text": "Example body"})
-    with closing(sqlite3.connect(app.config["DATABASE"])) as connection:
+    with closing(sqlite3.connect(current_app.config["DATABASE"])) as connection:
         post_id = connection.execute(
             "SELECT id FROM entries WHERE title = ?", ("Delete me",)
         ).fetchone()[0]
@@ -100,7 +115,7 @@ def test_delete_message(client):
 
     assert response.status_code == 200
     assert response.get_json()["status"] == 1
-    with closing(sqlite3.connect(app.config["DATABASE"])) as connection:
+    with closing(sqlite3.connect(current_app.config["DATABASE"])) as connection:
         assert connection.execute("SELECT title FROM entries").fetchall() == [("Keep me",)]
     page = client.get("/").data
     assert b"Delete me" not in page

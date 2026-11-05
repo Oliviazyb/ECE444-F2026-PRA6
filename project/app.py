@@ -1,65 +1,51 @@
 import os
-import sqlite3
 from pathlib import Path
 
 from flask import (
-    Flask, abort, flash, g, jsonify, redirect, render_template, request, session, url_for,
+    Flask, abort, current_app, flash, jsonify, redirect, render_template, request, session, url_for,
 )
 
 
-app = Flask(__name__)
-app.config["DATABASE"] = Path(__file__).resolve().parent.parent / "flaskr.db"
-app.config.update(
-    USERNAME=os.getenv("APP_USERNAME", "admin"),
-    PASSWORD=os.getenv("APP_PASSWORD", "admin"),
-    SECRET_KEY=os.getenv("SECRET_KEY", "development-only-change-before-deployment"),
-)
+from project.models import Post, db
+from sqlalchemy.exc import SQLAlchemyError
 
 
-def connect_db():
-    """Open a connection whose rows support access by column name."""
-    connection = sqlite3.connect(app.config["DATABASE"])
-    connection.row_factory = sqlite3.Row
-    return connection
+def create_app(test_config=None):
+    application = Flask(__name__)
+    database = Path(__file__).resolve().parent.parent / "flaskr.db"
+    application.config.update(
+        DATABASE=database,
+        SQLALCHEMY_DATABASE_URI=f"sqlite:///{database}",
+        SQLALCHEMY_TRACK_MODIFICATIONS=False,
+        USERNAME=os.getenv("APP_USERNAME", "admin"),
+        PASSWORD=os.getenv("APP_PASSWORD", "admin"),
+        SECRET_KEY=os.getenv("SECRET_KEY", "development-only-change-before-deployment"),
+    )
+    if test_config:
+        application.config.update(test_config)
+    db.init_app(application)
+    for rule, view, methods in (
+        ("/", index, ["GET"]),
+        ("/login", login, ["GET", "POST"]),
+        ("/logout", logout, ["GET"]),
+        ("/add", add_entry, ["POST"]),
+        ("/delete/<int:post_id>", delete_entry, ["GET"]),
+    ):
+        application.add_url_rule(rule, view_func=view, methods=methods)
+    return application
 
 
-def get_db():
-    """Reuse one connection within the current application context."""
-    if "sqlite_db" not in g:
-        g.sqlite_db = connect_db()
-    return g.sqlite_db
-
-
-def init_db():
-    """Reset the database using schema.sql; existing entries are removed."""
-    with app.app_context():
-        database = get_db()
-        with app.open_resource("schema.sql", mode="r") as schema:
-            database.executescript(schema.read())
-        database.commit()
-
-
-@app.teardown_appcontext
-def close_db(error):
-    """Release the connection when the application context ends."""
-    database = g.pop("sqlite_db", None)
-    if database is not None:
-        database.close()
-
-
-@app.route("/")
 def index():
-    entries = get_db().execute("SELECT * FROM entries ORDER BY id DESC").fetchall()
+    entries = db.session.execute(db.select(Post).order_by(Post.id.desc())).scalars().all()
     return render_template("index.html", entries=entries)
 
 
-@app.route("/login", methods=["GET", "POST"])
 def login():
     error = None
     if request.method == "POST":
-        if request.form["username"] != app.config["USERNAME"]:
+        if request.form["username"] != current_app.config["USERNAME"]:
             error = "Invalid username"
-        elif request.form["password"] != app.config["PASSWORD"]:
+        elif request.form["password"] != current_app.config["PASSWORD"]:
             error = "Invalid password"
         else:
             session["logged_in"] = True
@@ -68,35 +54,33 @@ def login():
     return render_template("login.html", error=error)
 
 
-@app.route("/logout")
 def logout():
     session.pop("logged_in", None)
     flash("You were logged out")
     return redirect(url_for("index"))
 
 
-@app.route("/add", methods=["POST"])
 def add_entry():
     if not session.get("logged_in"):
         abort(401)
-    database = get_db()
-    database.execute(
-        "INSERT INTO entries (title, text) VALUES (?, ?)",
-        (request.form["title"], request.form["text"]),
-    )
-    database.commit()
+    post = Post(title=request.form["title"], text=request.form["text"])
+    db.session.add(post)
+    db.session.commit()
     flash("New entry was successfully posted")
     return redirect(url_for("index"))
 
 
-@app.route("/delete/<int:post_id>", methods=["GET"])
 def delete_entry(post_id):
     """Delete a post and return JSON for the browser's fetch request."""
-    database = get_db()
     try:
-        database.execute("DELETE FROM entries WHERE id = ?", (post_id,))
-        database.commit()
-    except sqlite3.Error:
-        database.rollback()
+        post = db.session.get(Post, post_id)
+        if post is not None:
+            db.session.delete(post)
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
         return jsonify(status=0, message="Could not delete post"), 500
     return jsonify(status=1, message="Post Deleted")
+
+
+app = create_app()
