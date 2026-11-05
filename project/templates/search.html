@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block body %}
+<h2>Search articles</h2>
+<a href="{{ url_for('index') }}">Home</a>
+<form action="{{ url_for('search') }}" method="get" class="my-3">
+  <label for="query" class="form-label">Search title or text</label>
+  <input id="query" name="query" value="{{ query }}" class="form-control mb-2" type="search">
+  <button class="btn btn-primary" type="submit">Search</button>
+</form>
+{% if query %}
+<p>Results for: {{ query }}</p>
+<ul class="list-unstyled">
+  {% for entry in entries %}
+  <li class="card card-body mb-3 text-break">
+    <h2 class="h4">{{ entry.title }}</h2>
+    {{ entry.text|safe }}
+  </li>
+  {% else %}
+  <li>No matching entries.</li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>Enter a keyword to search.</p>
+{% endif %}
+{% endblock %}

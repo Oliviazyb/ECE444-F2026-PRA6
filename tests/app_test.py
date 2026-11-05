@@ -120,3 +120,30 @@ def test_delete_message(client):
     page = client.get("/").data
     assert b"Delete me" not in page
     assert b"Keep me" in page
+
+
+@pytest.mark.parametrize("query, expected", [
+    ("fLaSk", ["Flask notes"]),
+    ("pytest", ["Testing notes"]),
+    ("missing", []),
+    ("", []),
+    ("   ", []),
+    (None, []),
+])
+def test_search(client, query, expected):
+    """Search matches title/body without case sensitivity and excludes others."""
+    login(client)
+    for title, text in (
+        ("Flask notes", "Routing tutorial"),
+        ("Testing notes", "Learn PYTEST fixtures"),
+        ("Other article", "Unrelated material"),
+    ):
+        client.post("/add", data={"title": title, "text": text})
+    client.get("/logout")
+    response = client.get("/search/", query_string={} if query is None else {"query": query})
+    assert response.status_code == 200
+    page = response.get_data(as_text=True)
+    for title in ("Flask notes", "Testing notes", "Other article"):
+        assert (title in page) == (title in expected)
+    if query and query.strip() and not expected:
+        assert "No matching entries." in page

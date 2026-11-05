@@ -26,6 +26,7 @@ def create_app(test_config=None):
     db.init_app(application)
     for rule, view, methods in (
         ("/", index, ["GET"]),
+        ("/search/", search, ["GET"]),
         ("/login", login, ["GET", "POST"]),
         ("/logout", logout, ["GET"]),
         ("/add", add_entry, ["POST"]),
@@ -38,6 +39,21 @@ def create_app(test_config=None):
 def index():
     entries = db.session.execute(db.select(Post).order_by(Post.id.desc())).scalars().all()
     return render_template("index.html", entries=entries)
+
+
+def search():
+    query = request.args.get("query", "").strip()
+    entries = []
+    if query:
+        posts = db.session.execute(
+            db.select(Post).order_by(Post.id.desc())
+        ).scalars().all()
+        keyword = query.casefold()
+        entries = [
+            post for post in posts
+            if keyword in post.title.casefold() or keyword in post.text.casefold()
+        ]
+    return render_template("search.html", entries=entries, query=query)
 
 
 def login():

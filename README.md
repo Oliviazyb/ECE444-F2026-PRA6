@@ -44,8 +44,11 @@ database storage. Deletion permissions are also added in a later tutorial stage.
 
 ## Progress
 
-- Completed: SQLite, templates, login/logout, adding posts, CSS, JS deletion and Bootstrap styling, initial deployment and SQLAlchemy.
-- Remaining: search and custom tests,
-  login-required deletion and tests, PostgreSQL, linting and formatting.
+- Completed: SQLite, templates, login/logout, adding posts, CSS, JS deletion and Bootstrap styling, initial deployment SQLAlchemy, and search with custom tests.
+- Remaining: login-required deletion and tests, PostgreSQL, linting and formatting.
 
 Deployment URL: https://ece444-pra6-olivia.onrender.com/
+
+Search uses `/search/?query=keyword`, matches title or body without case
+sensitivity, and shows no articles for blank queries. Six parameterized search
+cases check title/body matches, exclusions, no results and empty queries.

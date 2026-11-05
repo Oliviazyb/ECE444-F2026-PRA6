@@ -10,6 +10,7 @@
     <main class="container py-4">
       <h1><a class="text-decoration-none" href="{{ url_for('index') }}">Flaskr</a></h1>
       <nav class="my-3">
+        <a class="btn btn-info" href="{{ url_for('search') }}">Search</a>
         {% if session.get('logged_in') %}
         <a class="btn btn-warning" href="{{ url_for('logout') }}">log out</a>
         {% else %}
