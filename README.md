@@ -28,7 +28,7 @@ then create and drop tables only in that temporary database.
 
 `Post` maps to the existing `entries` table so local SQLite posts are preserved.
 
-## Render deployment (current SQLite stage)
+## Render deployment
 
 Create a Python Web Service from this repository, using these settings:
 
@@ -38,14 +38,16 @@ Create a Python Web Service from this repository, using these settings:
 - Instance type: Free
 - Environment: set a random `SECRET_KEY`, plus `APP_USERNAME` and `APP_PASSWORD`.
 
-This stage uses SQLite on Render's ephemeral filesystem. Posts can be lost on
-restart, redeploy or spin-down. The later PRA6 PostgreSQL stage provides external
-database storage. Deleting posts requires a logged-in session.
+Without DATABASE_URL, SQLite uses Render's ephemeral filesystem and posts can
+be lost on restart. Configure PostgreSQL as described below for external storage.
+Deleting posts requires a logged-in session.
 
 ## Progress
 
 - Completed: SQLite, templates, login/logout, adding posts, CSS, JS deletion and Bootstrap styling, initial deployment, SQLAlchemy, search with custom tests, and login-required deletion.
-- Remaining: PostgreSQL, linting and formatting.
+- PostgreSQL deployment: reported successful; restart persistence check pending.
+- Flake8 and Black: completed locally.
+- Final online verification, TA demonstration and Quercus submission: pending.
 
 Deployment URL: https://ece444-pra6-olivia.onrender.com/
 
@@ -85,5 +87,28 @@ unset DATABASE_URL
 Tests explicitly override the database URL with temporary SQLite databases;
 they do not create or drop tables in the remote PostgreSQL database.
 After deployment, publish a test article, restart the Web Service and verify
-that the article remains. Remote PostgreSQL connectivity is pending until the
-Render database and environment variable are configured.
+that the article remains. PostgreSQL deployment was reported successful; the
+restart persistence check still needs to be confirmed.
+
+
+## Linting and formatting
+
+```sh
+python -m flake8 .
+python -m black --check .
+python -m pytest -v
+```
+
+To apply formatting, use `python -m black .`. Configuration excludes virtual
+environments from Flake8 and uses an 88-character line length.
+
+## Final demonstration and submission
+
+- Verify successful and unsuccessful login, logout, adding and deleting posts.
+- Verify title/body search, case-insensitive matching and no matching results.
+- Verify deletion fails after logout and the article remains.
+- Verify a published article survives a Render Web Service restart.
+- Explain Red-Green-Refactor, test fixtures and database isolation, Post/ORM,
+  Flask session versus SQLAlchemy session, login_required, and Gunicorn.
+- Show the custom search and deletion-permission tests to the TA.
+- Submit the GitHub repository URL to Quercus and obtain the in-person TA evaluation.

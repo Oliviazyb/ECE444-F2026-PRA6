@@ -1,0 +1,4 @@
+[flake8]
+exclude = .git,.venv,env,__pycache__,.pytest_cache
+max-line-length = 88
+extend-ignore = E203

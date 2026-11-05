@@ -3,7 +3,16 @@ from functools import wraps
 from pathlib import Path
 
 from flask import (
-    Flask, abort, current_app, flash, jsonify, redirect, render_template, request, session, url_for,
+    Flask,
+    abort,
+    current_app,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
 )
 
 
@@ -18,7 +27,7 @@ def create_app(test_config=None):
     # Render URLs use the PostgreSQL scheme; select our psycopg 3 driver.
     for prefix in ("postgres://", "postgresql://"):
         if database_url.startswith(prefix):
-            database_url = "postgresql+psycopg://" + database_url[len(prefix):]
+            database_url = "postgresql+psycopg://" + database_url[len(prefix) :]
             break
     application.config.update(
         DATABASE=database,
@@ -44,7 +53,9 @@ def create_app(test_config=None):
 
 
 def index():
-    entries = db.session.execute(db.select(Post).order_by(Post.id.desc())).scalars().all()
+    entries = (
+        db.session.execute(db.select(Post).order_by(Post.id.desc())).scalars().all()
+    )
     return render_template("index.html", entries=entries)
 
 
@@ -52,12 +63,13 @@ def search():
     query = request.args.get("query", "").strip()
     entries = []
     if query:
-        posts = db.session.execute(
-            db.select(Post).order_by(Post.id.desc())
-        ).scalars().all()
+        posts = (
+            db.session.execute(db.select(Post).order_by(Post.id.desc())).scalars().all()
+        )
         keyword = query.casefold()
         entries = [
-            post for post in posts
+            post
+            for post in posts
             if keyword in post.title.casefold() or keyword in post.text.casefold()
         ]
     return render_template("search.html", entries=entries, query=query)
@@ -95,12 +107,14 @@ def add_entry():
 
 def login_required(view):
     """Only call the wrapped view when the client is authenticated."""
+
     @wraps(view)
     def decorated_function(*args, **kwargs):
         if not session.get("logged_in"):
             flash("Please log in.")
             return jsonify(status=0, message="Please log in."), 401
         return view(*args, **kwargs)
+
     return decorated_function
 
 

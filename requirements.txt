@@ -3,3 +3,5 @@ Flask-SQLAlchemy>=3.1,<4
 pytest>=8,<10
 gunicorn>=23,<24
 psycopg[binary]>=3.2,<4
+black>=26,<27
+flake8>=7,<8

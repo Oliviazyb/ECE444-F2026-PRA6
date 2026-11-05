@@ -12,14 +12,16 @@ from project.app import create_app, db
 def client(tmp_path):
     """Configure the test database before SQLAlchemy initializes its engine."""
     database = tmp_path / "test.db"
-    app = create_app({
-        "TESTING": True,
-        "DATABASE": database,
-        "SQLALCHEMY_DATABASE_URI": f"sqlite:///{database}",
-        "USERNAME": "admin",
-        "PASSWORD": "admin",
-        "SECRET_KEY": "test-only-key",
-    })
+    app = create_app(
+        {
+            "TESTING": True,
+            "DATABASE": database,
+            "SQLALCHEMY_DATABASE_URI": f"sqlite:///{database}",
+            "USERNAME": "admin",
+            "PASSWORD": "admin",
+            "SECRET_KEY": "test-only-key",
+        }
+    )
     with app.app_context():
         db.create_all()
         try:
@@ -116,13 +118,17 @@ def test_delete_message(client):
     assert response.status_code == 200
     assert response.get_json()["status"] == 1
     with closing(sqlite3.connect(current_app.config["DATABASE"])) as connection:
-        assert connection.execute("SELECT title FROM entries").fetchall() == [("Keep me",)]
+        assert connection.execute("SELECT title FROM entries").fetchall() == [
+            ("Keep me",)
+        ]
     page = client.get("/").data
     assert b"Delete me" not in page
     assert b"Keep me" in page
 
 
-@pytest.mark.parametrize("authentication", ["never_logged_in", "logged_out", "wrong_password"])
+@pytest.mark.parametrize(
+    "authentication", ["never_logged_in", "logged_out", "wrong_password"]
+)
 def test_delete_requires_login(client, authentication):
     """Denied deletion must preserve the actual post, not just return an error."""
     from project.models import Post
@@ -146,14 +152,17 @@ def test_delete_requires_login(client, authentication):
     assert b"Protected article" in client.get("/").data
 
 
-@pytest.mark.parametrize("query, expected", [
-    ("fLaSk", ["Flask notes"]),
-    ("pytest", ["Testing notes"]),
-    ("missing", []),
-    ("", []),
-    ("   ", []),
-    (None, []),
-])
+@pytest.mark.parametrize(
+    "query, expected",
+    [
+        ("fLaSk", ["Flask notes"]),
+        ("pytest", ["Testing notes"]),
+        ("missing", []),
+        ("", []),
+        ("   ", []),
+        (None, []),
+    ],
+)
 def test_search(client, query, expected):
     """Search matches title/body without case sensitivity and excludes others."""
     login(client)
@@ -164,7 +173,9 @@ def test_search(client, query, expected):
     ):
         client.post("/add", data={"title": title, "text": text})
     client.get("/logout")
-    response = client.get("/search/", query_string={} if query is None else {"query": query})
+    response = client.get(
+        "/search/", query_string={} if query is None else {"query": query}
+    )
     assert response.status_code == 200
     page = response.get_data(as_text=True)
     for title in ("Flask notes", "Testing notes", "Other article"):
